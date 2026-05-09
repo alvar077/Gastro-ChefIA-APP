@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 
+enum SearchType {
+  nome,
+  ingrediente,
+  categoria,
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -7,19 +13,14 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-enum SearchType {
-  nome,
-  ingrediente,
-  categoria,
-}
-
 class _HomeScreenState extends State<HomeScreen> {
-  final _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _searchController = TextEditingController();
 
   SearchType _searchType = SearchType.nome;
+  bool _kitchenMode = false;
 
-  final categories = [
+  final List<String> categories = [
     'Sobremesas',
     'Carnes',
     'Massas',
@@ -36,7 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _searchRecipe() {
     if (_formKey.currentState!.validate()) {
-      final searchText = _searchController.text.trim();
+      final String searchText = _searchController.text.trim();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -68,15 +69,21 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildRadioOption({
     required String title,
     required SearchType value,
+    required double fontSize,
   }) {
     return RadioListTile<SearchType>(
-      title: Text(title),
+      title: Text(
+        title,
+        style: TextStyle(fontSize: fontSize),
+      ),
       value: value,
       groupValue: _searchType,
       onChanged: (SearchType? selectedValue) {
-        setState(() {
-          _searchType = selectedValue!;
-        });
+        if (selectedValue != null) {
+          setState(() {
+            _searchType = selectedValue;
+          });
+        }
       },
       contentPadding: EdgeInsets.zero,
     );
@@ -84,6 +91,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final double titleFontSize = _kitchenMode ? 24 : 20;
+    final double textFontSize = _kitchenMode ? 18 : 14;
+    final double cardFontSize = _kitchenMode ? 22 : 18;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('ChefApp'),
@@ -100,12 +111,38 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            Card(
+              child: SwitchListTile(
+                title: Text(
+                  'Modo cozinha',
+                  style: TextStyle(
+                    fontSize: titleFontSize,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text(
+                  'Aumenta a fonte para facilitar o uso durante o preparo',
+                  style: TextStyle(fontSize: textFontSize),
+                ),
+                secondary: const Icon(Icons.soup_kitchen),
+                value: _kitchenMode,
+                onChanged: (bool value) {
+                  setState(() {
+                    _kitchenMode = value;
+                  });
+                },
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
             Form(
               key: _formKey,
               child: Column(
                 children: [
                   TextFormField(
                     controller: _searchController,
+                    style: TextStyle(fontSize: textFontSize),
                     decoration: InputDecoration(
                       labelText: 'Buscar receita',
                       hintText: 'Ex: frango, bolo, massa...',
@@ -114,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    validator: (value) {
+                    validator: (String? value) {
                       if (value == null || value.trim().isEmpty) {
                         return 'Digite algo para buscar';
                       }
@@ -133,21 +170,29 @@ class _HomeScreenState extends State<HomeScreen> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Buscar por:',
-                      style: Theme.of(context).textTheme.titleMedium,
+                      style: TextStyle(
+                        fontSize: titleFontSize,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
 
                   _buildRadioOption(
                     title: 'Nome da receita',
                     value: SearchType.nome,
+                    fontSize: textFontSize,
                   ),
+
                   _buildRadioOption(
                     title: 'Ingrediente',
                     value: SearchType.ingrediente,
+                    fontSize: textFontSize,
                   ),
+
                   _buildRadioOption(
                     title: 'Categoria',
                     value: SearchType.categoria,
+                    fontSize: textFontSize,
                   ),
 
                   const SizedBox(height: 8),
@@ -157,7 +202,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ElevatedButton.icon(
                       onPressed: _searchRecipe,
                       icon: const Icon(Icons.search),
-                      label: const Text('Pesquisar'),
+                      label: Text(
+                        'Pesquisar',
+                        style: TextStyle(fontSize: textFontSize),
+                      ),
                     ),
                   ),
                 ],
@@ -170,7 +218,10 @@ class _HomeScreenState extends State<HomeScreen> {
               alignment: Alignment.centerLeft,
               child: Text(
                 'Categorias',
-                style: Theme.of(context).textTheme.titleLarge,
+                style: TextStyle(
+                  fontSize: titleFontSize,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
 
@@ -185,8 +236,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisSpacing: 12,
                   childAspectRatio: 1.3,
                 ),
-                itemBuilder: (context, index) {
-                  final category = categories[index];
+                itemBuilder: (BuildContext context, int index) {
+                  final String category = categories[index];
 
                   return InkWell(
                     onTap: () {
@@ -210,11 +261,14 @@ class _HomeScreenState extends State<HomeScreen> {
                             size: 42,
                             color: Colors.deepOrange,
                           ),
+
                           const SizedBox(height: 8),
+
                           Text(
                             category,
-                            style: const TextStyle(
-                              fontSize: 18,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: cardFontSize,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
