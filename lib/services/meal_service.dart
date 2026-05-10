@@ -1,0 +1,31 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+
+import '../models/meal_category.dart';
+
+class MealService {
+  static const String _baseUrl = 'https://www.themealdb.com/api/json/v1/1';
+
+  Future<List<MealCategory>> fetchCategories() async {
+    final Uri url = Uri.parse('$_baseUrl/categories.php');
+
+    try {
+      final http.Response response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+
+        final List<dynamic> categoriesJson = data['categories'] ?? [];
+
+        return categoriesJson
+            .map((categoryJson) => MealCategory.fromJson(categoryJson))
+            .toList();
+      } else {
+        throw Exception('Erro ao buscar categorias');
+      }
+    } catch (error) {
+      throw Exception('Falha de conexão com a API');
+    }
+  }
+}
