@@ -40,48 +40,35 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _searchRecipe() {
-    if (_formKey.currentState!.validate()) {
-      final String searchText = _searchController.text.trim();
+  if (_formKey.currentState!.validate()) {
+    final String searchText = _searchController.text.trim();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Buscando "$searchText" por ${_getSearchTypeText()}',
-          ),
-        ),
-      );
-
-      Navigator.pushNamed(
-        context,
-        '/details',
-        arguments: searchText,
-      );
-    }
-  }
-
-  void _openCategoryDetails(MealCategory category) {
     Navigator.pushNamed(
       context,
-      '/details',
-      arguments: category.name,
+      '/search-results',
+      arguments: {
+        'searchText': searchText,
+        'searchType': _searchType,
+      },
     );
   }
+}
+
+  void _openCategoryDetails(MealCategory category) {
+  Navigator.pushNamed(
+    context,
+    '/search-results',
+    arguments: {
+      'searchText': category.name,
+      'searchType': SearchType.categoria,
+    },
+  );
+}
 
   void _reloadCategories() {
     setState(() {
       _categoriesFuture = _mealService.fetchCategories();
     });
-  }
-
-  String _getSearchTypeText() {
-    switch (_searchType) {
-      case SearchType.nome:
-        return 'nome';
-      case SearchType.ingrediente:
-        return 'ingrediente';
-      case SearchType.categoria:
-        return 'categoria';
-    }
   }
 
   Widget _buildRadioOption({

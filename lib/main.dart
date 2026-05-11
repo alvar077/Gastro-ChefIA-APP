@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 import 'screens/recipe_detail_screen.dart';
 import 'screens/favorites_screen.dart';
+import 'screens/search_results_screen.dart';
 
 void main() {
   runApp(const ChefApp());
@@ -25,6 +26,7 @@ class ChefApp extends StatelessWidget {
         '/': (context) => const HomeScreen(),
         '/details': (context) => const RecipeDetailScreen(),
         '/favorites': (context) => const FavoritesScreen(),
+        '/search-results': (context) => const SearchResultsScreen(),
       },
     );
   }
