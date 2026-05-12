@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../models/meal_category.dart';
+import '../models/meal_detail.dart';
 import '../models/meal_summary.dart';
 
 class MealService {
@@ -45,6 +46,28 @@ class MealService {
     final Uri url = Uri.parse('$_baseUrl/filter.php?c=$category');
 
     return _fetchMealList(url);
+  }
+
+  Future<MealDetail> fetchMealDetailById(String mealId) async {
+    final Uri url = Uri.parse('$_baseUrl/lookup.php?i=$mealId');
+
+    try {
+      final http.Response response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+
+        if (data['meals'] == null || data['meals'].isEmpty) {
+          throw Exception('Receita não encontrada');
+        }
+
+        return MealDetail.fromJson(data['meals'][0]);
+      } else {
+        throw Exception('Erro ao buscar detalhes da receita');
+      }
+    } catch (error) {
+      throw Exception('Falha de conexão com a API');
+    }
   }
 
   Future<List<MealSummary>> _fetchMealList(Uri url) async {

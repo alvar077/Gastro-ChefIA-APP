@@ -1,48 +1,215 @@
 import 'package:flutter/material.dart';
 
-class RecipeDetailScreen extends StatelessWidget {
+import '../models/meal_detail.dart';
+import '../services/meal_service.dart';
+
+class RecipeDetailScreen extends StatefulWidget {
   const RecipeDetailScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final String recipeName =
-        ModalRoute.of(context)?.settings.arguments as String? ?? 'Receita';
+  State<RecipeDetailScreen> createState() => _RecipeDetailScreenState();
+}
 
+class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
+  final MealService _mealService = MealService();
+
+  late Future<MealDetail> _mealDetailFuture;
+  late String _mealId;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    _mealId = ModalRoute.of(context)?.settings.arguments as String;
+    _mealDetailFuture = _mealService.fetchMealDetailById(_mealId);
+  }
+
+  void _reloadMealDetail() {
+    setState(() {
+      _mealDetailFuture = _mealService.fetchMealDetailById(_mealId);
+    });
+  }
+
+  void _showVideoUnavailableMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Vídeo da receita ainda não integrado nesta versão.'),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(recipeName),
+        title: const Text('Detalhes da receita'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: ListView(
-          children: [
-            Container(
-              height: 180,
-              decoration: BoxDecoration(
+      body: FutureBuilder<MealDetail>(
+        future: _mealDetailFuture,
+        builder: (
+          BuildContext context,
+          AsyncSnapshot<MealDetail> snapshot,
+        ) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return _buildErrorMessage();
+          }
+
+          final MealDetail? meal = snapshot.data;
+
+          if (meal == null) {
+            return _buildEmptyMessage();
+          }
+
+          return _buildMealDetail(meal);
+        },
+      ),
+    );
+  }
+
+  Widget _buildMealDetail(MealDetail meal) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Image.network(
+            meal.imageUrl,
+            height: 220,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            errorBuilder: (
+              BuildContext context,
+              Object error,
+              StackTrace? stackTrace,
+            ) {
+              return Container(
+                height: 220,
                 color: Colors.orange.shade100,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Icon(
-                Icons.fastfood,
-                size: 80,
-                color: Colors.deepOrange,
-              ),
+                child: const Icon(
+                  Icons.restaurant_menu,
+                  size: 80,
+                  color: Colors.deepOrange,
+                ),
+              );
+            },
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        Text(
+          meal.name,
+          style: const TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            Chip(
+              avatar: const Icon(Icons.category),
+              label: Text(meal.category),
             ),
+            Chip(
+              avatar: const Icon(Icons.public),
+              label: Text(meal.area),
+            ),
+          ],
+        ),
 
-            const SizedBox(height: 16),
+        const SizedBox(height: 20),
 
-            Text(
-              recipeName,
-              style: const TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
+        const Text(
+          'Ingredientes',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        ...meal.ingredients.map(
+          (String ingredient) {
+            return Card(
+              child: ListTile(
+                leading: const Icon(Icons.check_circle_outline),
+                title: Text(ingredient),
               ),
+            );
+          },
+        ),
+
+        const SizedBox(height: 20),
+
+        const Text(
+          'Modo de preparo',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        Text(
+          meal.instructions,
+          textAlign: TextAlign.justify,
+          style: const TextStyle(
+            fontSize: 16,
+            height: 1.5,
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        if (meal.youtubeUrl.isNotEmpty)
+          ElevatedButton.icon(
+            onPressed: _showVideoUnavailableMessage,
+            icon: const Icon(Icons.play_circle),
+            label: const Text('Ver vídeo da receita'),
+          ),
+
+        const SizedBox(height: 12),
+
+        ElevatedButton.icon(
+          onPressed: () {},
+          icon: const Icon(Icons.favorite_border),
+          label: const Text('Salvar nos favoritos'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorMessage() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 56,
+              color: Colors.deepOrange,
             ),
 
             const SizedBox(height: 12),
 
             const Text(
-              'Ingredientes',
+              'Erro ao carregar detalhes da receita.',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -50,47 +217,28 @@ class RecipeDetailScreen extends StatelessWidget {
             ),
 
             const SizedBox(height: 8),
-
-            const Text('- Ingrediente 1\n- Ingrediente 2\n- Ingrediente 3'),
-
-            const SizedBox(height: 20),
 
             const Text(
-              'Modo de preparo',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            CheckboxListTile(
-              value: false,
-              onChanged: (value) {},
-              title: const Text('Separar os ingredientes'),
-            ),
-            CheckboxListTile(
-              value: false,
-              onChanged: (value) {},
-              title: const Text('Misturar tudo em uma tigela'),
-            ),
-            CheckboxListTile(
-              value: false,
-              onChanged: (value) {},
-              title: const Text('Levar ao forno ou preparar no fogão'),
+              'Verifique sua conexão e tente novamente.',
+              textAlign: TextAlign.center,
             ),
 
             const SizedBox(height: 16),
 
             ElevatedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.favorite_border),
-              label: const Text('Salvar nos favoritos'),
+              onPressed: _reloadMealDetail,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Tentar novamente'),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildEmptyMessage() {
+    return const Center(
+      child: Text('Receita não encontrada.'),
     );
   }
 }

@@ -63,7 +63,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     Navigator.pushNamed(
       context,
       '/details',
-      arguments: meal.name,
+      arguments: meal.id,
     );
   }
 
