@@ -1,41 +1,184 @@
 import 'package:flutter/material.dart';
 
-class FavoritesScreen extends StatelessWidget {
+import '../models/meal_detail.dart';
+import '../services/favorite_service.dart';
+
+class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final favoriteRecipes = [
-      'Bolo de chocolate',
-      'Macarrão à bolonhesa',
-      'Frango assado',
-    ];
+  State<FavoritesScreen> createState() => _FavoritesScreenState();
+}
 
+class _FavoritesScreenState extends State<FavoritesScreen> {
+  final FavoriteService _favoriteService = FavoriteService();
+
+  late Future<List<MealDetail>> _favoritesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavorites();
+  }
+
+  void _loadFavorites() {
+    _favoritesFuture = _favoriteService.getFavorites();
+  }
+
+  Future<void> _removeFavorite(String mealId) async {
+    await _favoriteService.removeFavorite(mealId);
+
+    if (mounted) {
+      setState(() {
+        _loadFavorites();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Receita removida dos favoritos.'),
+        ),
+      );
+    }
+  }
+
+  void _openMealDetails(String mealId) {
+    Navigator.pushNamed(
+      context,
+      '/details',
+      arguments: mealId,
+    ).then((_) {
+      setState(() {
+        _loadFavorites();
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Receitas favoritas'),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: favoriteRecipes.length,
-        itemBuilder: (context, index) {
-          final recipe = favoriteRecipes[index];
+      body: FutureBuilder<List<MealDetail>>(
+        future: _favoritesFuture,
+        builder: (
+          BuildContext context,
+          AsyncSnapshot<List<MealDetail>> snapshot,
+        ) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
 
-          return Card(
-            child: ListTile(
-              leading: const Icon(Icons.favorite, color: Colors.red),
-              title: Text(recipe),
-              subtitle: const Text('Receita salva localmente'),
-              onTap: () {
-                Navigator.pushNamed(
-                  context,
-                  '/details',
-                  arguments: recipe,
-                );
-              },
-            ),
+          if (snapshot.hasError) {
+            return _buildErrorMessage();
+          }
+
+          final List<MealDetail> favorites = snapshot.data ?? [];
+
+          if (favorites.isEmpty) {
+            return _buildEmptyFavorites();
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: favorites.length,
+            itemBuilder: (BuildContext context, int index) {
+              final MealDetail meal = favorites[index];
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      meal.imageUrl,
+                      width: 64,
+                      height: 64,
+                      fit: BoxFit.cover,
+                      errorBuilder: (
+                        BuildContext context,
+                        Object error,
+                        StackTrace? stackTrace,
+                      ) {
+                        return Container(
+                          width: 64,
+                          height: 64,
+                          color: Colors.orange.shade100,
+                          child: const Icon(
+                            Icons.restaurant_menu,
+                            color: Colors.deepOrange,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  title: Text(
+                    meal.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text('${meal.category} • ${meal.area}'),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () {
+                      _removeFavorite(meal.id);
+                    },
+                  ),
+                  onTap: () {
+                    _openMealDetails(meal.id);
+                  },
+                ),
+              );
+            },
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildEmptyFavorites() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.favorite_border,
+              size: 64,
+              color: Colors.deepOrange,
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Nenhuma receita favorita ainda.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Abra uma receita e toque em "Salvar nos favoritos".',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorMessage() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Text(
+          'Erro ao carregar favoritos.',
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }

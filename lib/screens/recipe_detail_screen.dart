@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/meal_detail.dart';
+import '../services/favorite_service.dart';
 import '../services/meal_service.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
@@ -12,22 +13,72 @@ class RecipeDetailScreen extends StatefulWidget {
 
 class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   final MealService _mealService = MealService();
+  final FavoriteService _favoriteService = FavoriteService();
 
   late Future<MealDetail> _mealDetailFuture;
   late String _mealId;
+
+  bool _isFavorite = false;
+  bool _initialized = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    _mealId = ModalRoute.of(context)?.settings.arguments as String;
-    _mealDetailFuture = _mealService.fetchMealDetailById(_mealId);
+    if (!_initialized) {
+      _mealId = ModalRoute.of(context)?.settings.arguments as String;
+      _mealDetailFuture = _mealService.fetchMealDetailById(_mealId);
+      _loadFavoriteStatus();
+      _initialized = true;
+    }
+  }
+
+  Future<void> _loadFavoriteStatus() async {
+    final bool favoriteStatus = await _favoriteService.isFavorite(_mealId);
+
+    if (mounted) {
+      setState(() {
+        _isFavorite = favoriteStatus;
+      });
+    }
   }
 
   void _reloadMealDetail() {
     setState(() {
       _mealDetailFuture = _mealService.fetchMealDetailById(_mealId);
     });
+  }
+
+  Future<void> _toggleFavorite(MealDetail meal) async {
+    if (_isFavorite) {
+      await _favoriteService.removeFavorite(meal.id);
+
+      if (mounted) {
+        setState(() {
+          _isFavorite = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Receita removida dos favoritos.'),
+          ),
+        );
+      }
+    } else {
+      await _favoriteService.addFavorite(meal);
+
+      if (mounted) {
+        setState(() {
+          _isFavorite = true;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Receita salva nos favoritos.'),
+          ),
+        );
+      }
+    }
   }
 
   void _showVideoUnavailableMessage() {
@@ -184,9 +235,15 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         const SizedBox(height: 12),
 
         ElevatedButton.icon(
-          onPressed: () {},
-          icon: const Icon(Icons.favorite_border),
-          label: const Text('Salvar nos favoritos'),
+          onPressed: () {
+            _toggleFavorite(meal);
+          },
+          icon: Icon(
+            _isFavorite ? Icons.favorite : Icons.favorite_border,
+          ),
+          label: Text(
+            _isFavorite ? 'Remover dos favoritos' : 'Salvar nos favoritos',
+          ),
         ),
       ],
     );

@@ -42,4 +42,30 @@ class MealDetail {
       ingredients: ingredientsList,
     );
   }
+
+  factory MealDetail.fromLocalJson(Map<String, dynamic> json) {
+    return MealDetail(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      imageUrl: json['imageUrl'] ?? '',
+      instructions: json['instructions'] ?? '',
+      category: json['category'] ?? '',
+      area: json['area'] ?? '',
+      youtubeUrl: json['youtubeUrl'] ?? '',
+      ingredients: List<String>.from(json['ingredients'] ?? []),
+    );
+  }
+
+  Map<String, dynamic> toLocalJson() {
+    return {
+      'id': id,
+      'name': name,
+      'imageUrl': imageUrl,
+      'instructions': instructions,
+      'category': category,
+      'area': area,
+      'youtubeUrl': youtubeUrl,
+      'ingredients': ingredients,
+    };
+  }
 }
