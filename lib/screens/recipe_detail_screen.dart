@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/meal_detail.dart';
 import '../services/favorite_service.dart';
 import '../services/meal_service.dart';
+import '../services/note_service.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
   const RecipeDetailScreen({super.key});
@@ -14,6 +15,9 @@ class RecipeDetailScreen extends StatefulWidget {
 class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   final MealService _mealService = MealService();
   final FavoriteService _favoriteService = FavoriteService();
+  final NoteService _noteService = NoteService();
+
+  final TextEditingController _noteController = TextEditingController();
 
   late Future<MealDetail> _mealDetailFuture;
   late String _mealId;
@@ -28,9 +32,18 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     if (!_initialized) {
       _mealId = ModalRoute.of(context)?.settings.arguments as String;
       _mealDetailFuture = _mealService.fetchMealDetailById(_mealId);
+
       _loadFavoriteStatus();
+      _loadNote();
+
       _initialized = true;
     }
+  }
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadFavoriteStatus() async {
@@ -40,6 +53,49 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       setState(() {
         _isFavorite = favoriteStatus;
       });
+    }
+  }
+
+  Future<void> _loadNote() async {
+    final String savedNote = await _noteService.getNote(_mealId);
+
+    if (mounted) {
+      setState(() {
+        _noteController.text = savedNote;
+      });
+    }
+  }
+
+  Future<void> _saveNote() async {
+    final String note = _noteController.text.trim();
+
+    await _noteService.saveNote(
+      mealId: _mealId,
+      note: note,
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Anotação salva com sucesso.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteNote() async {
+    await _noteService.deleteNote(_mealId);
+
+    if (mounted) {
+      setState(() {
+        _noteController.clear();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Anotação apagada.'),
+        ),
+      );
     }
   }
 
@@ -225,6 +281,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
         const SizedBox(height: 20),
 
+        _buildNotesSection(),
+
+        const SizedBox(height: 20),
+
         if (meal.youtubeUrl.isNotEmpty)
           ElevatedButton.icon(
             onPressed: _showVideoUnavailableMessage,
@@ -246,6 +306,67 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildNotesSection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Anotações pessoais',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            const Text(
+              'Use este espaço para salvar ajustes, lembretes ou observações sobre a receita.',
+            ),
+
+            const SizedBox(height: 12),
+
+            TextField(
+              controller: _noteController,
+              maxLines: 4,
+              decoration: InputDecoration(
+                hintText: 'Ex: colocar menos sal, adicionar queijo...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _saveNote,
+                    icon: const Icon(Icons.save),
+                    label: const Text('Salvar anotação'),
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                IconButton(
+                  onPressed: _deleteNote,
+                  icon: const Icon(Icons.delete_outline),
+                  tooltip: 'Apagar anotação',
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
