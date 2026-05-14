@@ -4,6 +4,7 @@ import '../models/meal_detail.dart';
 import '../services/favorite_service.dart';
 import '../services/meal_service.dart';
 import '../services/note_service.dart';
+import '../services/progress_service.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
   const RecipeDetailScreen({super.key});
@@ -16,6 +17,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   final MealService _mealService = MealService();
   final FavoriteService _favoriteService = FavoriteService();
   final NoteService _noteService = NoteService();
+  final ProgressService _progressService = ProgressService();
 
   final TextEditingController _noteController = TextEditingController();
 
@@ -24,6 +26,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
   bool _isFavorite = false;
   bool _initialized = false;
+
+  List<int> _checkedSteps = [];
 
   @override
   void didChangeDependencies() {
@@ -35,6 +39,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
       _loadFavoriteStatus();
       _loadNote();
+      _loadProgress();
 
       _initialized = true;
     }
@@ -62,6 +67,16 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     if (mounted) {
       setState(() {
         _noteController.text = savedNote;
+      });
+    }
+  }
+
+  Future<void> _loadProgress() async {
+    final List<int> savedSteps = await _progressService.getCheckedSteps(_mealId);
+
+    if (mounted) {
+      setState(() {
+        _checkedSteps = savedSteps;
       });
     }
   }
@@ -94,6 +109,37 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Anotação apagada.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _toggleStep(int index, bool checked) async {
+    setState(() {
+      if (checked) {
+        _checkedSteps.add(index);
+      } else {
+        _checkedSteps.remove(index);
+      }
+    });
+
+    await _progressService.saveCheckedSteps(
+      mealId: _mealId,
+      checkedSteps: _checkedSteps,
+    );
+  }
+
+  Future<void> _clearProgress() async {
+    await _progressService.clearProgress(_mealId);
+
+    if (mounted) {
+      setState(() {
+        _checkedSteps.clear();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Progresso do preparo apagado.'),
         ),
       );
     }
@@ -145,6 +191,28 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     );
   }
 
+  List<String> _getPreparationSteps(String instructions) {
+    return instructions
+        .split(RegExp(r'\.\s+'))
+        .map((String step) => step.trim())
+        .where((String step) => step.isNotEmpty)
+        .map((String step) {
+      if (step.endsWith('.')) {
+        return step;
+      }
+
+      return '$step.';
+    }).toList();
+  }
+
+  double _calculateProgressPercentage(int totalSteps) {
+    if (totalSteps == 0) {
+      return 0;
+    }
+
+    return _checkedSteps.length / totalSteps;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -180,6 +248,10 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   }
 
   Widget _buildMealDetail(MealDetail meal) {
+    final List<String> preparationSteps = _getPreparationSteps(
+      meal.instructions,
+    );
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -260,24 +332,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
         const SizedBox(height: 20),
 
-        const Text(
-          'Modo de preparo',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-
-        const SizedBox(height: 8),
-
-        Text(
-          meal.instructions,
-          textAlign: TextAlign.justify,
-          style: const TextStyle(
-            fontSize: 16,
-            height: 1.5,
-          ),
-        ),
+        _buildPreparationProgressSection(preparationSteps),
 
         const SizedBox(height: 20),
 
@@ -306,6 +361,75 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPreparationProgressSection(List<String> preparationSteps) {
+    final double progress = _calculateProgressPercentage(
+      preparationSteps.length,
+    );
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Modo de preparo',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            Text(
+              '${_checkedSteps.length} de ${preparationSteps.length} etapas concluídas',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            LinearProgressIndicator(value: progress),
+
+            const SizedBox(height: 12),
+
+            ...List.generate(
+              preparationSteps.length,
+              (int index) {
+                final bool isChecked = _checkedSteps.contains(index);
+
+                return CheckboxListTile(
+                  value: isChecked,
+                  onChanged: (bool? value) {
+                    _toggleStep(index, value ?? false);
+                  },
+                  title: Text(
+                    preparationSteps[index],
+                    textAlign: TextAlign.justify,
+                  ),
+                  controlAffinity: ListTileControlAffinity.leading,
+                );
+              },
+            ),
+
+            const SizedBox(height: 8),
+
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: _clearProgress,
+                icon: const Icon(Icons.restart_alt),
+                label: const Text('Limpar progresso'),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
