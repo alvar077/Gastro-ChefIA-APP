@@ -194,6 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
           TextFormField(
             controller: _searchController,
             style: TextStyle(fontSize: textFontSize),
+            textInputAction: TextInputAction.search,
             decoration: InputDecoration(
               labelText: 'Buscar receita',
               hintText: 'Ex: frango, bolo, massa...',
@@ -212,6 +213,9 @@ class _HomeScreenState extends State<HomeScreen> {
               }
 
               return null;
+            },
+            onFieldSubmitted: (String value) {
+              _searchRecipe();
             },
           ),
 
