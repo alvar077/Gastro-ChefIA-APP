@@ -1,6 +1,6 @@
-# Gastrô ChefIA
+# ChefIA
 
-**Gastrô ChefIA** é um aplicativo mobile desenvolvido em **Flutter/Dart** para consulta, organização e acompanhamento de receitas culinárias.
+**ChefIA** é um aplicativo mobile desenvolvido em **Flutter/Dart** para consulta, organização e acompanhamento de receitas culinárias.
 
 O projeto foi desenvolvido como trabalho final da disciplina de **Desenvolvimento Mobile**. A proposta é criar um aplicativo complementar para um canal de culinária, permitindo que os usuários explorem receitas por categoria, busquem pratos por nome ou ingrediente, salvem receitas favoritas, registrem anotações pessoais e acompanhem o progresso do preparo.
 
@@ -18,7 +18,7 @@ O problema apresentado foi que os seguidores do canal frequentemente pedem recei
 
 ## Objetivo do Aplicativo
 
-O **Gastrô ChefIA** tem como objetivo permitir que o usuário:
+O **ChefIA** tem como objetivo permitir que o usuário:
 
 - Visualize categorias de receitas;
 - Busque receitas por nome;
@@ -87,7 +87,7 @@ lib/
 ### 1. Clonar o repositório
 
 ```bash
-git clone https://github.com/alvar077/Gastro-ChefIA-APP.git
+git clone https://github.com/alvar077/ChefIA-APP.git
 ```
 
 ### 2. Entrar na pasta do projeto

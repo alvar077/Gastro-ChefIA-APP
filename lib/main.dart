@@ -6,16 +6,16 @@ import 'screens/favorites_screen.dart';
 import 'screens/search_results_screen.dart';
 
 void main() {
-  runApp(const GastroChefIA());
+  runApp(const ChefIA());
 }
 
-class GastroChefIA extends StatelessWidget {
-  const GastroChefIA({super.key});
+class ChefIA extends StatelessWidget {
+  const ChefIA({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Gastrô ChefIA',
+      title: 'ChefIA',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorSchemeSeed: Colors.deepOrange,
