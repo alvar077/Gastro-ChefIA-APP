@@ -97,14 +97,6 @@ class _HomeScreenState extends State<HomeScreen> {
         style: TextStyle(fontSize: fontSize),
       ),
       value: value,
-      groupValue: _searchType,
-      onChanged: (SearchType? selectedValue) {
-        if (selectedValue != null) {
-          setState(() {
-            _searchType = selectedValue;
-          });
-        }
-      },
       dense: true,
       contentPadding: EdgeInsets.zero,
     );
@@ -294,22 +286,36 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              _buildRadioOption(
-                title: 'Nome da receita',
-                value: SearchType.nome,
-                fontSize: textFontSize,
-              ),
+              RadioGroup<SearchType>(
+                groupValue: _searchType,
+                onChanged: (SearchType? selectedValue) {
+                  if (selectedValue != null) {
+                    setState(() {
+                      _searchType = selectedValue;
+                    });
+                  }
+                },
+                child: Column(
+                  children: [
+                    _buildRadioOption(
+                      title: 'Nome da receita',
+                      value: SearchType.nome,
+                      fontSize: textFontSize,
+                    ),
 
-              _buildRadioOption(
-                title: 'Ingrediente',
-                value: SearchType.ingrediente,
-                fontSize: textFontSize,
-              ),
+                    _buildRadioOption(
+                      title: 'Ingrediente',
+                      value: SearchType.ingrediente,
+                      fontSize: textFontSize,
+                    ),
 
-              _buildRadioOption(
-                title: 'Categoria',
-                value: SearchType.categoria,
-                fontSize: textFontSize,
+                    _buildRadioOption(
+                      title: 'Categoria',
+                      value: SearchType.categoria,
+                      fontSize: textFontSize,
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 8),
