@@ -52,6 +52,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _refreshCategories() async {
+    setState(() {
+      _categoriesFuture = _mealService.fetchCategories();
+    });
+
+    await _categoriesFuture;
+  }
+
   void _searchRecipe() {
     if (_formKey.currentState!.validate()) {
       final String searchText = _searchController.text.trim();
@@ -76,12 +84,6 @@ class _HomeScreenState extends State<HomeScreen> {
         'searchType': SearchType.categoria,
       },
     );
-  }
-
-  void _reloadCategories() {
-    setState(() {
-      _categoriesFuture = _mealService.fetchCategories();
-    });
   }
 
   Widget _buildRadioOption({
@@ -117,10 +119,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('ChefApp'),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.favorite),
-            tooltip: 'Favoritos',
+            tooltip: 'Receitas favoritas',
             onPressed: () {
               Navigator.pushNamed(context, '/favorites');
             },
@@ -128,42 +131,37 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          _reloadCategories();
-        },
+        onRefresh: _refreshCategories,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildKitchenModeCard(
+              _buildHeaderCard(
                 titleFontSize: titleFontSize,
                 textFontSize: textFontSize,
               ),
 
               const SizedBox(height: 16),
 
-              _buildSearchForm(
+              _buildSearchCard(
+                titleFontSize: titleFontSize,
+                textFontSize: textFontSize,
+              ),
+
+              const SizedBox(height: 16),
+
+              _buildKitchenModeCard(
                 titleFontSize: titleFontSize,
                 textFontSize: textFontSize,
               ),
 
               const SizedBox(height: 24),
 
-              Text(
-                'Categorias',
-                style: TextStyle(
-                  fontSize: titleFontSize,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 4),
-
-              Text(
-                'Escolha uma categoria para ver receitas relacionadas.',
-                style: TextStyle(fontSize: textFontSize),
+              _buildCategoriesHeader(
+                titleFontSize: titleFontSize,
+                textFontSize: textFontSize,
               ),
 
               const SizedBox(height: 12),
@@ -179,53 +177,91 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildKitchenModeCard({
+  Widget _buildHeaderCard({
     required double titleFontSize,
     required double textFontSize,
   }) {
-    return Card(
-      child: SwitchListTile(
-        title: Text(
-          'Modo cozinha',
-          style: TextStyle(
-            fontSize: titleFontSize,
-            fontWeight: FontWeight.bold,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.deepOrange.shade100,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Icon(
+              Icons.restaurant_menu,
+              size: 42,
+              color: Colors.deepOrange,
+            ),
           ),
-        ),
-        subtitle: Text(
-          'Aumenta a fonte para facilitar o uso durante o preparo',
-          style: TextStyle(fontSize: textFontSize),
-        ),
-        secondary: const Icon(Icons.soup_kitchen),
-        value: _kitchenMode,
-        onChanged: (bool value) async {
-          setState(() {
-            _kitchenMode = value;
-          });
 
-          await _preferencesService.saveKitchenMode(value);
-        },
+          const SizedBox(width: 16),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Olá, chef!',
+                  style: TextStyle(
+                    fontSize: titleFontSize + 4,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+
+                Text(
+                  'Encontre receitas por nome, ingrediente ou categoria.',
+                  style: TextStyle(
+                    fontSize: textFontSize,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSearchForm({
+  Widget _buildSearchCard({
     required double titleFontSize,
     required double textFontSize,
   }) {
-    return Form(
-      key: _formKey,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(
+                'Buscar receita',
+                style: TextStyle(
+                  fontSize: titleFontSize,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
               TextFormField(
                 controller: _searchController,
                 style: TextStyle(fontSize: textFontSize),
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
-                  labelText: 'Buscar receita',
                   hintText: 'Ex: chicken, pasta, dessert...',
                   prefixIcon: const Icon(Icons.search),
                   border: OutlineInputBorder(
@@ -250,14 +286,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 12),
 
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Buscar por:',
-                  style: TextStyle(
-                    fontSize: titleFontSize,
-                    fontWeight: FontWeight.bold,
-                  ),
+              Text(
+                'Tipo de busca:',
+                style: TextStyle(
+                  fontSize: textFontSize,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
 
@@ -299,6 +332,68 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildKitchenModeCard({
+    required double titleFontSize,
+    required double textFontSize,
+  }) {
+    return Card(
+      elevation: 2,
+      child: SwitchListTile(
+        title: Text(
+          'Modo cozinha',
+          style: TextStyle(
+            fontSize: titleFontSize,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Text(
+          'Aumenta a fonte para facilitar o uso durante o preparo.',
+          style: TextStyle(fontSize: textFontSize),
+        ),
+        secondary: const Icon(
+          Icons.soup_kitchen,
+          color: Colors.deepOrange,
+        ),
+        value: _kitchenMode,
+        onChanged: (bool value) async {
+          setState(() {
+            _kitchenMode = value;
+          });
+
+          await _preferencesService.saveKitchenMode(value);
+        },
+      ),
+    );
+  }
+
+  Widget _buildCategoriesHeader({
+    required double titleFontSize,
+    required double textFontSize,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Categorias',
+          style: TextStyle(
+            fontSize: titleFontSize,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
+        const SizedBox(height: 4),
+
+        Text(
+          'Escolha uma categoria para visualizar receitas relacionadas.',
+          style: TextStyle(
+            fontSize: textFontSize,
+            color: Colors.grey.shade700,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildCategoriesFromApi({
     required double cardFontSize,
     required double textFontSize,
@@ -319,56 +414,19 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         if (snapshot.hasError) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  const Icon(
-                    Icons.wifi_off,
-                    size: 56,
-                    color: Colors.deepOrange,
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  Text(
-                    'Não foi possível carregar as categorias.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: textFontSize,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  Text(
-                    'Verifique sua conexão com a internet e tente novamente.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: textFontSize),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  ElevatedButton.icon(
-                    onPressed: _reloadCategories,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Tentar novamente'),
-                  ),
-                ],
-              ),
-            ),
-          );
+          return _buildCategoriesError(textFontSize);
         }
 
         final List<MealCategory> categories = snapshot.data ?? [];
 
         if (categories.isEmpty) {
           return Center(
-            child: Text(
-              'Nenhuma categoria encontrada.',
-              style: TextStyle(fontSize: textFontSize),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'Nenhuma categoria encontrada.',
+                style: TextStyle(fontSize: textFontSize),
+              ),
             ),
           );
         }
@@ -390,10 +448,13 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () {
                 _openCategoryRecipes(category);
               },
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(18),
               child: Card(
                 clipBehavior: Clip.antiAlias,
                 elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
                 child: Column(
                   children: [
                     Expanded(
@@ -440,6 +501,54 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildCategoriesError(double textFontSize) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.wifi_off,
+              size: 56,
+              color: Colors.deepOrange,
+            ),
+
+            const SizedBox(height: 12),
+
+            Text(
+              'Não foi possível carregar as categorias.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: textFontSize,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            Text(
+              'Verifique sua conexão com a internet e tente novamente.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: textFontSize),
+            ),
+
+            const SizedBox(height: 16),
+
+            ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _categoriesFuture = _mealService.fetchCategories();
+                });
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('Tentar novamente'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
