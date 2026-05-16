@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/meal_detail.dart';
 import '../services/favorite_service.dart';
@@ -26,8 +28,11 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
   bool _isFavorite = false;
   bool _initialized = false;
- 
+
   List<int> _checkedSteps = [];
+
+  YoutubePlayerController? _youtubeController;
+  String? _currentVideoId;
 
   @override
   void didChangeDependencies() {
@@ -35,8 +40,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
     if (!_initialized) {
       _mealId = ModalRoute.of(context)?.settings.arguments as String;
-      _mealDetailFuture = _mealService.fetchMealDetailById(_mealId);
 
+      _loadMealDetail();
       _loadFavoriteStatus();
       _loadNote();
       _loadProgress();
@@ -48,7 +53,15 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   @override
   void dispose() {
     _noteController.dispose();
+    _disposeYoutubeController();
     super.dispose();
+  }
+
+  void _loadMealDetail() {
+    _mealDetailFuture = _mealService.fetchMealDetailById(_mealId).then((meal) {
+      _setupYoutubePlayer(meal.youtubeUrl);
+      return meal;
+    });
   }
 
   Future<void> _loadFavoriteStatus() async {
@@ -117,7 +130,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   Future<void> _toggleStep(int index, bool checked) async {
     setState(() {
       if (checked) {
-        _checkedSteps.add(index);
+        if (!_checkedSteps.contains(index)) {
+          _checkedSteps.add(index);
+        }
       } else {
         _checkedSteps.remove(index);
       }
@@ -147,8 +162,27 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
   void _reloadMealDetail() {
     setState(() {
-      _mealDetailFuture = _mealService.fetchMealDetailById(_mealId);
+      _disposeYoutubeController();
+      _loadMealDetail();
     });
+  }
+
+  Future<void> _openVideoInYoutube(String youtubeUrl) async {
+    final Uri videoUri = Uri.parse(youtubeUrl);
+
+    final bool opened = await launchUrl(
+      videoUri,
+      mode: LaunchMode.platformDefault,
+      webOnlyWindowName: '_blank',
+    );
+
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível abrir o vídeo no YouTube.'),
+        ),
+      );
+    }
   }
 
   Future<void> _toggleFavorite(MealDetail meal) async {
@@ -183,12 +217,62 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     }
   }
 
-  void _showVideoUnavailableMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Vídeo da receita ainda não integrado nesta versão.'),
+  String? _extractYoutubeVideoId(String youtubeUrl) {
+    if (youtubeUrl.trim().isEmpty) {
+      return null;
+    }
+
+    final Uri? uri = Uri.tryParse(youtubeUrl);
+
+    if (uri == null) {
+      return null;
+    }
+
+    if (uri.host.contains('youtu.be')) {
+      if (uri.pathSegments.isNotEmpty) {
+        return uri.pathSegments.first;
+      }
+    }
+
+    if (uri.queryParameters.containsKey('v')) {
+      return uri.queryParameters['v'];
+    }
+
+    return null;
+  }
+
+  void _setupYoutubePlayer(String youtubeUrl) {
+    final String? videoId = _extractYoutubeVideoId(youtubeUrl);
+
+    if (videoId == null || videoId.isEmpty) {
+      _disposeYoutubeController();
+      return;
+    }
+
+    if (_currentVideoId == videoId && _youtubeController != null) {
+      return;
+    }
+
+    _disposeYoutubeController();
+
+    _youtubeController = YoutubePlayerController.fromVideoId(
+      videoId: videoId,
+      autoPlay: false,
+      params: const YoutubePlayerParams(
+        showControls: true,
+        showFullscreenButton: true,
+        strictRelatedVideos: true,
+        enableCaption: true,
       ),
     );
+
+    _currentVideoId = videoId;
+  }
+
+  void _disposeYoutubeController() {
+    _youtubeController?.close();
+    _youtubeController = null;
+    _currentVideoId = null;
   }
 
   List<String> _getPreparationSteps(String instructions) {
@@ -367,12 +451,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
         const SizedBox(height: 20),
 
-        if (meal.youtubeUrl.isNotEmpty)
-          ElevatedButton.icon(
-            onPressed: _showVideoUnavailableMessage,
-            icon: const Icon(Icons.play_circle),
-            label: const Text('Ver vídeo da receita'),
-          ),
+        _buildVideoSection(meal),
 
         const SizedBox(height: 12),
 
@@ -388,6 +467,77 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildVideoSection(MealDetail meal) {
+    if (meal.youtubeUrl.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Vídeo da receita',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            const Text(
+              'Assista ao vídeo diretamente na tela de detalhes. Se o player não reproduzir por restrição do YouTube, use o botão abaixo.',
+            ),
+
+            const SizedBox(height: 12),
+
+            if (_youtubeController != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: YoutubePlayer(
+                    controller: _youtubeController!,
+                  ),
+                ),
+              )
+            else
+              Container(
+                height: 180,
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.play_circle_outline,
+                    size: 64,
+                    color: Colors.deepOrange,
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 12),
+
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  _openVideoInYoutube(meal.youtubeUrl);
+                },
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('Abrir vídeo no YouTube'),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
