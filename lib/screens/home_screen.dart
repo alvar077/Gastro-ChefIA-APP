@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/meal_category.dart';
 import '../services/meal_service.dart';
+import '../services/preferences_service.dart';
 
 enum SearchType {
   nome,
@@ -19,8 +20,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _searchController = TextEditingController();
-
   final MealService _mealService = MealService();
+  final PreferencesService _preferencesService = PreferencesService();
 
   SearchType _searchType = SearchType.nome;
   bool _kitchenMode = false;
@@ -31,7 +32,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _categoriesFuture = _mealService.fetchCategories();
-  }
+    _loadKitchenMode();
+}
 
   @override
   void dispose() {
@@ -174,10 +176,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         secondary: const Icon(Icons.soup_kitchen),
         value: _kitchenMode,
-        onChanged: (bool value) {
+        onChanged: (bool value) async {
           setState(() {
             _kitchenMode = value;
           });
+
+          await _preferencesService.saveKitchenMode(value);
         },
       ),
     );
@@ -403,5 +407,15 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+  }
+
+  Future<void> _loadKitchenMode() async {
+    final bool savedKitchenMode = await _preferencesService.getKitchenMode();
+
+    if (mounted) {
+      setState(() {
+        _kitchenMode = savedKitchenMode;
+      });
+    }
   }
 }
