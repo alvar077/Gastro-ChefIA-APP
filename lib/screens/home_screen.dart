@@ -118,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ChefApp'),
+        title: const Text('ChefIA'),
         centerTitle: true,
         actions: [
           IconButton(
