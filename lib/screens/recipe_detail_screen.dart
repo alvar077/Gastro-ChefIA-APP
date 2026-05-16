@@ -26,7 +26,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
   bool _isFavorite = false;
   bool _initialized = false;
-
+ 
   List<int> _checkedSteps = [];
 
   @override
@@ -218,6 +218,33 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detalhes da receita'),
+        actions: [
+          FutureBuilder<MealDetail>(
+            future: _mealDetailFuture,
+            builder: (
+              BuildContext context,
+              AsyncSnapshot<MealDetail> snapshot,
+            ) {
+              if (!snapshot.hasData) {
+                return const SizedBox.shrink();
+              }
+
+              final MealDetail meal = snapshot.data!;
+
+              return IconButton(
+                icon: Icon(
+                  _isFavorite ? Icons.favorite : Icons.favorite_border,
+                ),
+                tooltip: _isFavorite
+                    ? 'Remover dos favoritos'
+                    : 'Salvar nos favoritos',
+                onPressed: () {
+                  _toggleFavorite(meal);
+                },
+              );
+            },
+          ),
+        ],
       ),
       body: FutureBuilder<MealDetail>(
         future: _mealDetailFuture,
