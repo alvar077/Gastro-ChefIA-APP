@@ -163,20 +163,16 @@ Rodar o projeto:
 flutter run
 ```
 
-Rodar no Chrome com porta fixa:
-
-```bash
-flutter run -d chrome --web-port 5000
-```
-
 ---
-
 
 ## Autor e desenvolvedores:
 
 **Álvaro de Souza Santos**
+
 **Deyvidy Emanoel Loiola**
+
 **Philip Dantas**
+
 **Marco Vinicio**
 
 
