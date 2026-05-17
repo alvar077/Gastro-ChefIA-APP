@@ -71,6 +71,8 @@ lib/
 │   ├── progress_service.dart
 │   └── preferences_service.dart
 └── widgets/
+    ├── loading_view.dart
+    └── state_message.dart
 ```
 
 ### Descrição das principais pastas
