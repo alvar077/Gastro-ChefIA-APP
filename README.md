@@ -97,6 +97,7 @@ git clone https://github.com/alvar077/ChefIA-APP.git
 ```bash
 cd chefapp_projetoddm
 ```
+Ou o nome da pasta que você adicionou o projeto após clonar.
 
 ### 3. Instalar as dependências
 
