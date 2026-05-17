@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../models/meal_detail.dart';
 import '../services/favorite_service.dart';
+import '../widgets/loading_view.dart';
+import '../widgets/state_message.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -66,8 +68,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           AsyncSnapshot<List<MealDetail>> snapshot,
         ) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
+            return const LoadingView(
+              message: 'Carregando receitas favoritas',
             );
           }
 
@@ -140,46 +142,22 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   Widget _buildEmptyFavorites() {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.favorite_border,
-              size: 64,
-              color: Colors.deepOrange,
-            ),
-            SizedBox(height: 12),
-            Text(
-              'Nenhuma receita favorita ainda.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Abra uma receita e toque em "Salvar nos favoritos".',
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+    return StateMessage(
+      icon: Icons.favorite_border,
+      title: 'Nenhuma receita favorita ainda.',
+      message: 'Abra uma receita e toque em "Salvar nos favoritos".',
+      buttonText: 'Buscar receitas',
+      onButtonPressed: () {
+        Navigator.pop(context);
+      },
     );
   }
 
   Widget _buildErrorMessage() {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Text(
-          'Erro ao carregar favoritos.',
-          textAlign: TextAlign.center,
-        ),
-      ),
+    return const StateMessage(
+      icon: Icons.error_outline,
+      title: 'Erro ao carregar favoritos.',
+      message: 'Não foi possível carregar suas receitas favoritas.',
     );
   }
 }
